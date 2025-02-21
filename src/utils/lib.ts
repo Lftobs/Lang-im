@@ -74,14 +74,14 @@ export const summarizeText = async (text: string, setIsProcessing: (processing: 
   );
 
   try {
-    // const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    // const prompt = "Summarize the following text: " + text;
-    // const result = await model.generateContent(prompt);
-    return "hi";
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const prompt = "Summarize the following text: " + text;
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   } catch (error) {
     console.error("Summarization error:", error);
     toast.error("Error occured while summarizing text.");
-    return ;
+    return "";
   } finally {
   }
 };
