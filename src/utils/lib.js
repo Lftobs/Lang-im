@@ -1,12 +1,7 @@
 import { toast } from "react-toastify";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-
-
-export const detectLanguage = async (
-  text: string,
-  setDetectedLanguage: (language: string) => void
-): Promise<string | undefined> => {
+export const detectLanguage = async (text, setDetectedLanguage) => {
   try {
     const detector = await self.ai.languageDetector.create();
     const result = await detector.detect(text);
@@ -23,16 +18,15 @@ export const detectLanguage = async (
   } catch (error) {
     // console.error("Language detection error:", error);
     toast.error("Error detecting language!");
-    
   }
 };
 
 export const translateText = async (
-  text: string,
-  detectedLanguage: string,
-  targetLanguage: string,
-  setIsTranslating: (isTranslating: boolean) => void
-): Promise<string | undefined> => {
+  text,
+  detectedLanguage,
+  targetLanguage,
+  setIsTranslating
+) => {
   console.log(detectedLanguage, targetLanguage);
   if (detectedLanguage === targetLanguage) {
     console.log("Can't translate to the same language");
@@ -50,7 +44,7 @@ export const translateText = async (
 
     const translatedResult = await translator.translate(text);
     return translatedResult;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Translation error:", error);
     if (
       error.message ===
@@ -65,7 +59,7 @@ export const translateText = async (
   }
 };
 
-export const summarizeText = async (text: string, setIsProcessing: (processing: boolean) => void) => {
+export const summarizeText = async (text, setIsProcessing) => {
   setIsProcessing(true);
   const genAI = new GoogleGenerativeAI(
     import.meta.env.VITE_GEMINI_API_KEY || ""
@@ -78,7 +72,6 @@ export const summarizeText = async (text: string, setIsProcessing: (processing: 
     return result.response.text();
   } catch (error) {
     console.error("Summarization error:", error);
-    
     return "";
   } finally {
     setIsProcessing(false);
