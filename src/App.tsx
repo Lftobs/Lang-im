@@ -19,7 +19,7 @@ export default function TextProcessor() {
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('es');
   const [detectedLanguage, setDetectedLanguage] = useState<string>('en');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -77,7 +77,9 @@ export default function TextProcessor() {
     } catch (error) {
       console.error('Summarization failed:', error);
     } finally {
-      setIsProcessing(false);
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 5000);
     }
   };
 
@@ -139,8 +141,8 @@ export default function TextProcessor() {
   };
 
   return (
-    <main className='flex flex-row-reverse w-screen h-screen items-center'>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 max-xl:w-[100%] xl:w-[75%]">
+    <main className='flex flex-row-reverse w-screen h-[100dvh] items-center'>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 max-xl:w-[100%] xl:w-[75%]">
         <div className="mx-auto px-4 py-8 h-screen flex flex-col">
           <div className="flex-1 overflow-y-auto space-y-4 pb-4 flex flex-col items-end">
             {messages.map(message => (
@@ -150,6 +152,7 @@ export default function TextProcessor() {
                 onSummarize={() => handleSummarize(message.id)}
                 onTranslate={() => handleTranslate(message.id)}
                 isTranslating={isTranslating}
+                isProcessing={isProcessing}
                 selectedLanguage={message.selectedLanguage || selectedLanguage}
                 detectedLanguage={message.dectectedLanguage || detectedLanguage}
                 setSelectedLanguage={(lang: string) => {
@@ -190,7 +193,7 @@ export default function TextProcessor() {
             </div>
           </form>
 
-          <div className="mt-4 flex justify-end space-x-2">
+          <div className="sticky bottom-0 p-4 mt-4 flex justify-end space-x-2 ">
             { messages.length > 0 && (
               <button
                 onClick={handleSaveChat}

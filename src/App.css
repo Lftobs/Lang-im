@@ -20,11 +20,11 @@
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: var(--color-blue-900);
+  background: transparent;
   border-radius: 5px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: transparent;
 }
