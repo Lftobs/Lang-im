@@ -1,3 +1,5 @@
+/// <reference path="../../global.d.ts" />
+
 import { toast } from "react-toastify";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
