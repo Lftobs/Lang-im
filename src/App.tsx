@@ -246,7 +246,7 @@ const handleSaveChat = () => {
               {JSON.parse(localStorage.getItem('savedChat') || '[]')
               .slice()
               .reverse()
-              .map((savedChat: Chat, index: number) => {
+              .map((savedChat: Chat) => {
               const firstMessage = savedChat.messages[0]?.text || 'Empty Chat';
               let isActive = active === savedChat.id;
              
