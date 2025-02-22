@@ -170,8 +170,8 @@ const handleSaveChat = () => {
   };
 
   return (
-    <main className='flex flex-row-reverse w-screen h-[100dvh] items-center'>
-      <div className="min-h-screen bg-gradient-to-br from-gray-800 via-black to-gray-800 max-xl:w-[100%] xl:w-[75%]">
+    <main className='flex flex-row-reverse w-screen h-[100dvh] bg-gradient-to-br from-gray-800/50 via-black/50 to-gray-800/50 items-center justify-center'>
+      <div className="min-h-screen bg-gradient-to-br from-gray-800 via-black to-gray-800 max-w-[1800px] max-xl:w-[100%] xl:w-[75%]">
         <div className="mx-auto px-4 py-8 h-screen flex flex-col">
           <div className="flex-1 overflow-y-auto space-y-4 pb-4 flex flex-col items-end">
             {messages.map(message => (
