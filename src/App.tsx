@@ -15,15 +15,22 @@ type Message = {
   translation?: string;
 };
 
+type Chat = {
+  id: string;
+  messages: Message[];
+  timestamp: number;
+};
+
 export default function TextProcessor() {
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-
+  const [chat, setChat] = useState<Chat>({ id: Date.now().toString(), messages: [], timestamp: Date.now() });
   const [selectedLanguage, setSelectedLanguage] = useState<string>('es');
   const [detectedLanguage, setDetectedLanguage] = useState<string>('en');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<string>('');
 
   useEffect(() => {
     if (!("ai" in self)) {
@@ -33,9 +40,9 @@ export default function TextProcessor() {
     console.log(chats);
     if (chats) {
       const parsedChats = JSON.parse(chats);
-      const lastItem = Array.isArray(parsedChats) ? parsedChats[parsedChats.length - 1] : parsedChats;
-      const key = Object.keys(lastItem)[0];
-      setMessages(lastItem[key]);
+      const lastItem = parsedChats[parsedChats.length - 1];
+      setMessages(lastItem?.messages);
+      setActive(lastItem?.id);
     }
   }, []);
 
@@ -45,6 +52,11 @@ export default function TextProcessor() {
 
     const newMessage: Message = { id: Date.now().toString(), text: inputText };
     setMessages(prev => [...prev, newMessage]);
+    setChat(prevChat => ({
+      ...prevChat,
+      messages: [...messages, newMessage],
+      timestamp: Date.now()
+    }));
     setInputText('');
 
     try {
@@ -55,13 +67,24 @@ export default function TextProcessor() {
           msg.id === newMessage.id ? { ...msg, language } : msg
         )
       );
+      
+      setChat(prevChat => ({
+        ...prevChat,
+        messages: prevChat.messages.map(msg =>
+          msg.id === newMessage.id ? { ...msg, language } : msg
+        ),
+        timestamp: Date.now()
+      }));
+     
+      
     } catch (error) {
       console.error('Language detection failed:', error);
     } finally {
       setIsProcessing(false);
+      
     }
   };
-
+  
   const handleSummarize = async (messageId: string) => {
     const message = messages.find(msg => msg.id === messageId);
     if (!message) return;
@@ -77,9 +100,7 @@ export default function TextProcessor() {
     } catch (error) {
       console.error('Summarization failed:', error);
     } finally {
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 5000);
+      setIsProcessing(false);
     }
   };
 
@@ -91,8 +112,8 @@ export default function TextProcessor() {
       setIsTranslating(true);
       const translation = await translateText(
         message.text,
-        detectedLanguage || 'en',
-        message.selectedLanguage || 'es',
+        detectedLanguage,
+        message.selectedLanguage || selectedLanguage,
         setIsTranslating
       );
       setMessages(prev =>
@@ -103,46 +124,54 @@ export default function TextProcessor() {
     } catch (error) {
       console.error('Translation failed:', error);
     } finally {
-      setTimeout(() => {
-        setIsTranslating(false);
-      }, 10000);
+
     }
   };
 
-  // Save the current chat to localStorage
-  const handleSaveChat = () => {
-    const existingData = localStorage.getItem('savedChat');
-    if (!existingData) {
-      localStorage.setItem('savedChat', JSON.stringify([{ [messages[0].text]: messages }]));
-    } else {
-      let savedChat = JSON.parse(existingData);
-      if (!Array.isArray(savedChat)) {
-        savedChat = [savedChat];
-      }
-      const chatKey = messages[0].id;
-      const existingChatIndex = savedChat.findIndex((chat: any) => chatKey in chat);
-      console.log(existingChatIndex, savedChat[-1]);
-      if (existingChatIndex !== -1) {
-        savedChat[existingChatIndex][messages[0].text] = messages;
-      } else {
-        savedChat[0][messages[0].text] = messages;
-      }
-      savedChat.push({[messages[0].text]: messages });
+    // Save the current chat to localStorage
+
+const handleSaveChat = () => {
+  const existingData = localStorage.getItem('savedChat');
+  if (!existingData) {
+    
+    localStorage.setItem('savedChat', JSON.stringify([chat]));
+    return;
+  } else {
+    let savedChat = JSON.parse(existingData);
+    const chatId = chat.id;
+    const firstMessageId = chat.messages[0]?.id; 
+
+    const existingIndex = savedChat.findIndex((existingChat: any) => 
+      existingChat.id === chatId && 
+      existingChat.messages[0]?.id === firstMessageId
+    );
+
+    if (existingIndex !== -1) {
+      // Update existing chat
+      savedChat[existingIndex] = chat;
       localStorage.setItem('savedChat', JSON.stringify(savedChat));
+      return;
+    } else {
+      // Add new chat
+      savedChat.push(chat);
+      localStorage.setItem('savedChat', JSON.stringify(savedChat));
+      return;
     }
-    toast.success('Chat saved.');
-  };
+  }
+};
+  
 
   // Clear messages and start a new chat
   const handleNewChat = () => {
     setMessages([]);
+    setChat({ id: Date.now().toString(), messages: [], timestamp: Date.now() });
     setDetectedLanguage('en');
-    setSelectedLanguage('en');
+    setSelectedLanguage('es');
   };
 
   return (
     <main className='flex flex-row-reverse w-screen h-[100dvh] items-center'>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 max-xl:w-[100%] xl:w-[75%]">
+      <div className="min-h-screen bg-gradient-to-br from-gray-800 via-black to-gray-800 max-xl:w-[100%] xl:w-[75%]">
         <div className="mx-auto px-4 py-8 h-screen flex flex-col">
           <div className="flex-1 overflow-y-auto space-y-4 pb-4 flex flex-col items-end">
             {messages.map(message => (
@@ -169,7 +198,7 @@ export default function TextProcessor() {
 
           <form
             onSubmit={handleSubmit}
-            className="sticky bottom-0 bg-gray-800/50 backdrop-blur-lg rounded-xl p-4 border border-gray-700"
+            className="sticky bottom-0 bg-gray-800/50 backdrop-blur-lg rounded-xl self-center w-[90%] p-4 border border-gray-700"
           >
             <div className="flex gap-4">
               <textarea
@@ -193,28 +222,92 @@ export default function TextProcessor() {
             </div>
           </form>
 
-          <div className="sticky bottom-0 p-4 mt-4 flex justify-end space-x-2 ">
-            { messages.length > 0 && (
+        </div>
+      </div>
+
+      <div className='w-[25%] bg-gradient-to-b from-gray-900 to-black border-r border-gray-700 h-full max-[1250px]:hidden p-8'>
+        <div className="h-full flex flex-col">
+          <div className="mb-8">
+        <h1 className='text-4xl font-bold text-outline text-transparent'>
+          Lang-im
+        </h1>
+        <p className="text-gray-400 text-sm mt-2">Your AI Language Assistant</p>
+          </div>
+
+          <div className="flex-1">
+        <h2 className="text-xl text-white font-semibold mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Chat History
+        </h2>
+        
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {JSON.parse(localStorage.getItem('savedChat') || '[]')
+              .slice()
+              .reverse()
+              .map((savedChat: Chat, index: number) => {
+              const firstMessage = savedChat.messages[0]?.text || 'Empty Chat';
+              let isActive = active === savedChat.id;
+             
+              
+              return (
+              <button
+                key={savedChat.id}
+                onClick={() => {
+                setMessages(savedChat.messages);
+                setChat(savedChat);
+                setActive(savedChat.id);
+
+                 // Update current chat when selecting
+                }}
+                className={`w-full text-left p-3 rounded-lg text-sm transition-colors focus-visible:outline-none outline-none focus:outline-none duration-200 border ${
+                isActive 
+                ? 'bg-blue-700/20 border-blue-500/50 text-blue-100' 
+                : 'bg-gray-700/50 hover:bg-gray-700/50 border-gray-700/50 text-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                {isActive && (
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                )}
+                <span className={`truncate ${isActive ? 'font-medium' : ''}`}>
+                {firstMessage}
+                </span>
+                <span className="text-xs text-gray-400 ml-auto">
+                {new Date(savedChat.timestamp).toLocaleDateString()}
+                </span>
+                </div>
+              </button>
+              );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {messages.length > 0 && (
               <button
                 onClick={handleSaveChat}
-                className="bg-green-700 hover:bg-green-800 p-2 rounded text-white"
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors duration-200 flex items-center justify-center gap-2"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
                 Save Chat
               </button>
             )}
             
             <button
               onClick={handleNewChat}
-              className="bg-red-700 hover:bg-red-800 p-2 rounded text-white"
+              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors duration-200 flex items-center justify-center gap-2"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
               New Chat
             </button>
           </div>
         </div>
-      </div>
-
-      <div className='flex justify-center items-center w-[25%] h-full max-[1250px]:hidden'>
-        <h1 className='text-4xl text-transparent text-outline'>Lang-im</h1>
       </div>
 
       <ToastContainer

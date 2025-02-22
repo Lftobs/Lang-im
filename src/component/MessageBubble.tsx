@@ -12,9 +12,8 @@ const override: CSSProperties = {
 
 const MessageBubble = ({ message, onSummarize, onTranslate, selectedLanguage, setSelectedLanguage, isProcessing, isTranslating}: any) => {
 
-  console.log(isProcessing)
   return (
-    <div className="space-y-4 min-w-4xl max-lg:min-w-[10rem] max-lg:w-full max-lg:max-w-[calc(100% - 1rem)]">
+    <div className="space-y-4 min-w-3xl max-w-[calc(100%-8rem)] max-lg:min-w-[10rem] max-lg:w-full max-lg:max-w-[calc(100%-2rem)]">
       {/* Original Message */}
       <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-4 border border-gray-700 animate-fade-in">
         <p className="text-gray-100 whitespace-pre-wrap">{message.text}</p>
@@ -31,7 +30,7 @@ const MessageBubble = ({ message, onSummarize, onTranslate, selectedLanguage, se
 
       
       
-      <div className="flex max-md:flex-wrap gap-4 lg:max-w-[20rem] ml-4">
+      <div className="flex flex-col sm:flex-row gap-4 max-sm:max-w-[13rem] ml-4 lg:max-w-[20rem] max-lg:ml-2 max-sm:gap-2">
         {message.text.length > 150 && message.language  === 'English' && !isProcessing && (
           
             <button
@@ -72,8 +71,8 @@ const MessageBubble = ({ message, onSummarize, onTranslate, selectedLanguage, se
               <button
               onClick={onTranslate}
               disabled={isTranslating}
-              className={`flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30
-                rounded-lg text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50
+              className={`flex items-center gap-2 px-4 py-2 bg-gray-600/20 hover:bg-gray-600/30
+                rounded-lg text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50
                 ${isTranslating ? 'animate-pulse' : ''}`}
               >
               <ArrowsRightLeftIcon className="w-5 h-5" />
