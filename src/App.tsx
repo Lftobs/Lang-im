@@ -97,6 +97,13 @@ export default function TextProcessor() {
           msg.id === messageId ? { ...msg, summary } : msg
         )
       );
+      setChat(prevChat => ({
+        ...prevChat,
+        messages: prevChat.messages.map(msg =>
+          msg.id === messageId ? { ...msg, summary } : msg
+        ),
+        timestamp: Date.now()
+      }));
     } catch (error) {
       console.error('Summarization failed:', error);
     } finally {
@@ -121,12 +128,20 @@ export default function TextProcessor() {
           msg.id === messageId ? { ...msg, translation } : msg
         )
       );
+      setChat(prevChat => ({
+        ...prevChat,
+        messages: prevChat.messages.map(msg =>
+          msg.id === messageId ? { ...msg, translation } : msg
+        ),
+        timestamp: Date.now()
+      }));
     } catch (error) {
       console.error('Translation failed:', error);
     } finally {
 
     }
   };
+  console.log(messages)
 
     // Save the current chat to localStorage
 
@@ -160,7 +175,6 @@ const handleSaveChat = () => {
   }
 };
   
-
   // Clear messages and start a new chat
   const handleNewChat = () => {
     setMessages([]);
