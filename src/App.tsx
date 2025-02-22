@@ -31,13 +31,14 @@ export default function TextProcessor() {
   const [isTranslating, setIsTranslating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<string>('');
+  const savedChats: Chat[] = JSON.parse(localStorage.getItem('savedChat') || '[]');
+
 
   useEffect(() => {
     if (!("ai" in self)) {
       toast.warn("This browser environment doesn't support the required AI capabilities.");
     }
     let chats = localStorage.getItem('savedChat');
-    console.log(chats);
     if (chats) {
       const parsedChats = JSON.parse(chats);
       const lastItem = parsedChats[parsedChats.length - 1];
@@ -141,40 +142,42 @@ export default function TextProcessor() {
 
     }
   };
-  console.log(messages)
-
-    // Save the current chat to localStorage
-
-const handleSaveChat = () => {
-  const existingData = localStorage.getItem('savedChat');
-  if (!existingData) {
-    
-    localStorage.setItem('savedChat', JSON.stringify([chat]));
-    return;
-  } else {
-    let savedChat = JSON.parse(existingData);
-    const chatId = chat.id;
-    const firstMessageId = chat.messages[0]?.id; 
-
-    const existingIndex = savedChat.findIndex((existingChat: any) => 
-      existingChat.id === chatId && 
-      existingChat.messages[0]?.id === firstMessageId
-    );
-
-    if (existingIndex !== -1) {
-      // Update existing chat
-      savedChat[existingIndex] = chat;
-      localStorage.setItem('savedChat', JSON.stringify(savedChat));
+  
+  const handleSaveChat = () => {
+    const existingData = localStorage.getItem('savedChat');
+    if (!existingData) {
+      
+      localStorage.setItem('savedChat', JSON.stringify([chat]));
       return;
     } else {
-      // Add new chat
-      savedChat.push(chat);
-      localStorage.setItem('savedChat', JSON.stringify(savedChat));
-      return;
+      
+      const chatId = chat.id;
+      const firstMessageId = chat.messages[0]?.id; 
+
+      const existingIndex = savedChats.findIndex((existingChat: any) => 
+        existingChat.id === chatId && 
+        existingChat.messages[0]?.id === firstMessageId
+      );
+
+      if (existingIndex !== -1) {
+        // Update existing chat
+        savedChats[existingIndex] = chat;
+        localStorage.setItem('savedChat', JSON.stringify(savedChats));
+        toast.info('Chat updated successfully!');
+        return;
+      } else {
+        // Add new chat
+        if (chat.messages.length === 0) {
+          return;
+        } 
+        savedChats.push(chat);
+        setActive(chat.id);
+        localStorage.setItem('savedChat', JSON.stringify(savedChats));
+        toast.info('Chat saved successfully!');
+        return;
+      }
     }
-  }
-};
-  
+  };
   // Clear messages and start a new chat
   const handleNewChat = () => {
     setMessages([]);
@@ -257,42 +260,35 @@ const handleSaveChat = () => {
         </h2>
         
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {JSON.parse(localStorage.getItem('savedChat') || '[]')
-              .slice()
-              .reverse()
-              .map((savedChat: Chat) => {
+              {savedChats.slice().reverse().map((savedChat: Chat) => {
               const firstMessage = savedChat.messages[0]?.text || 'Empty Chat';
               let isActive = active === savedChat.id;
-             
-              
               return (
-              <button
+                <button
                 key={savedChat.id}
                 onClick={() => {
-                setMessages(savedChat.messages);
-                setChat(savedChat);
-                setActive(savedChat.id);
-
-                 // Update current chat when selecting
+                  setMessages(savedChat.messages);
+                  setChat(savedChat);
+                  setActive(savedChat.id);
                 }}
                 className={`w-full text-left p-3 rounded-lg text-sm transition-colors focus-visible:outline-none outline-none focus:outline-none duration-200 border ${
-                isActive 
-                ? 'bg-blue-700/20 border-blue-500/50 text-blue-100' 
-                : 'bg-gray-700/50 hover:bg-gray-700/50 border-gray-700/50 text-gray-200'
+                  isActive 
+                  ? 'bg-blue-700/20 border-blue-500/50 text-blue-100' 
+                  : 'bg-gray-700/50 hover:bg-gray-700/50 border-gray-700/50 text-gray-200'
                 }`}
-              >
+                >
                 <div className="flex items-center gap-2">
-                {isActive && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                )}
-                <span className={`truncate ${isActive ? 'font-medium' : ''}`}>
-                {firstMessage}
-                </span>
-                <span className="text-xs text-gray-400 ml-auto">
-                {new Date(savedChat.timestamp).toLocaleDateString()}
-                </span>
+                  {isActive && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  )}
+                  <span className={`truncate ${isActive ? 'font-medium' : ''}`}>
+                  {firstMessage}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                  {new Date(savedChat.timestamp).toLocaleDateString()}
+                  </span>
                 </div>
-              </button>
+                </button>
               );
               })}
             </div>
