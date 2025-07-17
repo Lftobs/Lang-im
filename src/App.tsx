@@ -27,22 +27,25 @@ export default function TextProcessor() {
   const [chat, setChat] = useState<Chat>({ id: Date.now().toString(), messages: [], timestamp: Date.now() });
   const [selectedLanguage, setSelectedLanguage] = useState<string>('es');
   const [detectedLanguage, setDetectedLanguage] = useState<string>('en');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<string>('');
-  const savedChats: Chat[] = JSON.parse(localStorage.getItem('savedChat') || '[]');
+  const savedChats: Chat[] = JSON.parse(localStorage.getItem('savedChat') || '[]').filter(
+    (chat: any) => chat && Array.isArray(chat.messages)
+  );
 
 
   useEffect(() => {
-    if (!("ai" in self)) {
-      toast.warn("This browser environment doesn't support the required AI capabilities.");
-    }
+    // if (!("ai" in self)) {
+    //   toast.warn("This browser environment doesn't support the required AI capabilities.");
+    // }
     let chats = localStorage.getItem('savedChat');
+    console.log(chats)
     if (chats) {
       const parsedChats = JSON.parse(chats);
       const lastItem = parsedChats[parsedChats.length - 1];
-      setMessages(lastItem?.messages);
+      setMessages(lastItem?.messages || []);
       setActive(lastItem?.id);
     }
   }, []);
@@ -51,18 +54,20 @@ export default function TextProcessor() {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const newMessage: Message = { id: Date.now().toString(), text: inputText };
+    const newMessageId = Date.now().toString();
+    const newMessage: Message = { id: newMessageId, text: inputText };
     setMessages(prev => [...prev, newMessage]);
     setChat(prevChat => ({
       ...prevChat,
-      messages: [...messages, newMessage],
+      messages: [...prevChat.messages, newMessage],
       timestamp: Date.now()
     }));
     setInputText('');
 
     try {
-      setIsProcessing(true);
+      setProcessingId(newMessage.id);
       const language = await detectLanguage(inputText, setDetectedLanguage);
+      console.log('Detected language:', language);
       setMessages(prev =>
         prev.map(msg =>
           msg.id === newMessage.id ? { ...msg, language } : msg
@@ -76,13 +81,10 @@ export default function TextProcessor() {
         ),
         timestamp: Date.now()
       }));
-     
-      
     } catch (error) {
       console.error('Language detection failed:', error);
     } finally {
-      setIsProcessing(false);
-      
+      setProcessingId(null);
     }
   };
   
@@ -91,8 +93,8 @@ export default function TextProcessor() {
     if (!message) return;
 
     try {
-      setIsProcessing(true);
-      const summary = await summarizeText(message.text, setIsProcessing);
+      setProcessingId(messageId);
+      const summary = await summarizeText(message.text);
       setMessages(prev =>
         prev.map(msg =>
           msg.id === messageId ? { ...msg, summary } : msg
@@ -108,7 +110,7 @@ export default function TextProcessor() {
     } catch (error) {
       console.error('Summarization failed:', error);
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -117,12 +119,11 @@ export default function TextProcessor() {
     if (!message) return;
 
     try {
-      setIsTranslating(true);
+      setTranslatingId(messageId);
       const translation = await translateText(
         message.text,
         detectedLanguage,
-        message.selectedLanguage || selectedLanguage,
-        setIsTranslating
+        message.selectedLanguage || selectedLanguage
       );
       setMessages(prev =>
         prev.map(msg =>
@@ -139,7 +140,7 @@ export default function TextProcessor() {
     } catch (error) {
       console.error('Translation failed:', error);
     } finally {
-
+      setTranslatingId(null);
     }
   };
   
@@ -197,8 +198,8 @@ export default function TextProcessor() {
                 message={message}
                 onSummarize={() => handleSummarize(message.id)}
                 onTranslate={() => handleTranslate(message.id)}
-                isTranslating={isTranslating}
-                isProcessing={isProcessing}
+                isTranslating={translatingId === message.id}
+                isProcessing={processingId === message.id}
                 selectedLanguage={message.selectedLanguage || selectedLanguage}
                 detectedLanguage={message.dectectedLanguage || detectedLanguage}
                 setSelectedLanguage={(lang: string) => {
@@ -229,7 +230,7 @@ export default function TextProcessor() {
               />
               <button
                 type="submit"
-                disabled={!inputText.trim() || isProcessing}
+                disabled={!inputText.trim() || processingId !== null}
                 className="self-end bg-blue-600 hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed
                   p-3 rounded-lg transition-all duration-200 group"
                 aria-label="Send text"

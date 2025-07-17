@@ -4,22 +4,50 @@ import { toast } from "react-toastify";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 
+const genAI = new GoogleGenerativeAI(
+  import.meta.env.VITE_GEMINI_API_KEY || ""
+);
+
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+const detectionPrompt =`
+Your are an expert language translator...please dectect language in 
+the given text and only return the language code E.g return en if its english
+
+NOTE ONLY RETURN THE LANGUAGE CODE
+
+Here is the text to dectect:
+`
+
+const translationPrompt =`
+Your are an expert language translator...please translate 
+the given text from the detectedlangauage to the target language.
+
+Expected input => {text: <the_text>, from: en, to: es}
+
+ie  if the text is hello your output should be holla.
+
+NOTE ONLY RETURN THE TRANSLATED TEXT
+
+Here is the input to translate:
+`
+
 
 export const detectLanguage = async (
   text: string,
   setDetectedLanguage: (language: string) => void
 ): Promise<string | undefined> => {
   try {
-    const detector = await self.ai.languageDetector.create();
-    const result = await detector.detect(text);
-    const detectedCode = result[0].detectedLanguage;
-
+    const prompt =  detectionPrompt + text;
+    const result = await model.generateContent(prompt);
+    const detectedCode = result.response.text().toLowerCase().trim();
+    console.log('Detected language code:', detectedCode);
     // gets original name of language code
     const languageName =
       new Intl.DisplayNames(["en"], { type: "language" }).of(detectedCode) ||
       "Unknown Language";
 
-    console.log(languageName);
+    console.log(languageName, 'language name');
     setDetectedLanguage(detectedCode);
     return languageName;
   } catch (error) {
@@ -32,8 +60,7 @@ export const detectLanguage = async (
 export const translateText = async (
   text: string,
   detectedLanguage: string,
-  targetLanguage: string,
-  setIsTranslating: (isTranslating: boolean) => void
+  targetLanguage: string
 ): Promise<string | undefined> => {
   console.log(detectedLanguage, targetLanguage);
   if (detectedLanguage === targetLanguage) {
@@ -42,15 +69,11 @@ export const translateText = async (
     return;
   }
 
-  setIsTranslating(true);
-
   try {
-    const translator = await self.ai.translator.create({
-      sourceLanguage: detectedLanguage,
-      targetLanguage,
-    });
+    const prompt =  translationPrompt + `text: ${text}, from: ${detectedLanguage}, to: ${targetLanguage}`;
+    const result = await model.generateContent(prompt);
 
-    const translatedResult = await translator.translate(text);
+    const translatedResult = result.response.text()
     return translatedResult;
   } catch (error: any) {
     console.error("Translation error:", error);
@@ -63,18 +86,11 @@ export const translateText = async (
       toast.error("Error in translation.");
     }
   } finally {
-    setIsTranslating(false);
   }
 };
 
-export const summarizeText = async (text: string, setIsProcessing: (processing: boolean) => void) => {
-  setIsProcessing(true);
-  const genAI = new GoogleGenerativeAI(
-    import.meta.env.VITE_GEMINI_API_KEY || ""
-  );
-
+export const summarizeText = async (text: string) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = "Summarize the following text: " + text;
     const result = await model.generateContent(prompt);
     return result.response.text();
